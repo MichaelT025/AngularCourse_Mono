@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { Task } from './task/task';
 import { NewTask } from './new-task/new-task';
 import { type NewTaskData } from './task/task.model';
-import { TasksService } from './tasks.services';
+import { TasksService } from './tasks.service';
 @Component({
   selector: 'app-tasks',
   imports: [Task, NewTask],
@@ -19,9 +19,6 @@ export class Tasks {
   
   get selectedUserTasks() {
     return this.tasksService.getUserTasks(this.id);
-  }
-  onCompleteTask(id:string){
-    this.tasksService.removeTask(id);
   }
 
   onStartAddTask(){
