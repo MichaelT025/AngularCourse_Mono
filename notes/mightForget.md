@@ -176,3 +176,81 @@ constructor() {
 - **Write:** `mySignal.set(value)` or `mySignal.update(fn)`
 - **Derive:** `computed(() => ...)`
 - **React:** `effect(() => { ... })`
+
+---
+
+# `@Injectable` — Services & Dependency Injection
+
+## What it is
+`@Injectable` tells Angular: *"This class is a service that can be created by the Dependency Injection (DI) system and given to other classes that need it."*
+
+Without it, Angular won't know to manage the class as a singleton or inject it anywhere.
+
+## Registering a service
+
+```ts
+import { Injectable } from '@angular/core';
+
+@Injectable({ providedIn: 'root' })
+export class TasksService {
+  private tasks = [...];
+
+  getUserTasks(userId: string) { ... }
+  addTask(taskData, userId) { ... }
+  removeTask(id: string) { ... }
+}
+```
+
+| Part | Meaning |
+|---|---|
+| `@Injectable()` | Marks the class for Angular's DI system |
+| `providedIn: 'root'` | Create **one** instance at app start; share it everywhere |
+
+## Injecting it — two ways
+
+### 1. Constructor injection (classic)
+
+```ts
+import { TasksService } from './tasks.services';
+
+export class Tasks {
+  constructor(private tasksService: TasksService) {}
+
+  get selectedUserTasks() {
+    return this.tasksService.getUserTasks(this.id);
+  }
+}
+```
+
+### 2. `inject()` function (modern, standalone components)
+
+```ts
+import { inject } from '@angular/core';
+import { TasksService } from '../tasks.services';
+
+export class NewTask {
+  private tasksService = inject(TasksService);
+
+  onSubmit() {
+    this.tasksService.addTask({ ... }, this.userId);
+  }
+}
+```
+
+- `inject()` must be called in an **injection context** (inside a class constructor body or at field initialization time)
+- Useful when you don't want to use a constructor at all
+
+## Why not just `new TasksService()`?
+
+| Manual `new` | Angular DI |
+|---|---|
+| You create and manage the instance | Angular creates and manages it |
+| Every `new` = a separate copy | `providedIn: 'root'` = **one** shared instance |
+| If the service needs `HttpClient`, you must build the whole chain yourself | Angular resolves nested dependencies automatically |
+| Hard to swap for testing | Easy to swap implementations globally |
+
+## Summary
+- **Register:** `@Injectable({ providedIn: 'root' })`
+- **Inject (constructor):** `constructor(private svc: MyService) {}`
+- **Inject (modern):** `private svc = inject(MyService)`
+- **Benefit:** single source of truth, automatic dependency chains, testable
