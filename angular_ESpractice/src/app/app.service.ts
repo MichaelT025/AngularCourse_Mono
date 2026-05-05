@@ -23,6 +23,6 @@ export class AppService{
         });
     }
   
-        console.log(annualData);  
+        return annualData;
   }
 }
