@@ -9,6 +9,7 @@ import { task_T } from './task.model';
 export class Task {
   @Input() task!: task_T;
   @Output() complete = new EventEmitter<string>();
+  
   onCompleteTask(){
     this.complete.emit(this.task.id);
   }
