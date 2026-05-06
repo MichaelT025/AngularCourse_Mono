@@ -254,3 +254,198 @@ export class NewTask {
 - **Inject (constructor):** `constructor(private svc: MyService) {}`
 - **Inject (modern):** `private svc = inject(MyService)`
 - **Benefit:** single source of truth, automatic dependency chains, testable
+
+---
+
+# `ng-content` — CSS Selectors for Content Projection
+
+## What it is
+`ng-content` with `select="...""` lets you **project specific pieces** of a parent template into **named slots** inside a child component. The `select` value is a **CSS selector**, so you use the same syntax you use in stylesheets.
+
+## How it works
+
+Inside the child component template, you define one or more `ng-content` slots:
+
+```html
+<!-- button.component.html -->
+<span class="text">
+  <ng-content/>
+</span>
+<span class="icon">
+  <ng-content select="icon"/>
+</span>
+```
+
+Inside the parent template, you pass content that matches those selectors:
+
+```html
+<!-- parent.component.html -->
+<app-button>
+  <span>Logout</span>     <!-- catches the first slot (default) -->
+  <span class="icon">→</span>  <!-- does NOT match "icon" element selector -->
+</app-button>
+```
+
+**Result:** the `→` **does not** land in the icon slot because `"icon"` looks for an **element** named `<icon>`, not a class.
+
+## Selector types
+
+| Selector | What it matches | Example |
+|---|---|---|
+| `"icon"` | Element named `<icon>` | `<icon>→</icon>` |
+| `".icon"` | Any element with class `icon` | `<span class="icon">→</span>` |
+| `"#save"` | Element with id `save` | `<button id="save">Save</button>` |
+| `"input"` | Element named `<input>` | `<input name="title"/>` |
+| `"input, textarea"` | Multiple elements (comma-separated) | `<input/>` or `<textarea/>` |
+
+## `ngProjectAs` — projecting as a different element
+
+If your parent template uses a real HTML element but you want Angular to treat it as a slot selector, use `ngProjectAs`:
+
+```html
+<!-- parent.component.html -->
+<app-button>
+  <span>Logout</span>
+  <span ngProjectAs="icon" class="icon">→</span>
+</app-button>
+```
+
+Now Angular sees this `<span>` as if it were `<icon>`, so `"select=\"icon\""` matches it.
+
+## Why the difference matters
+
+```html
+<!-- button.component.html -->
+<span class="icon">
+  <ng-content select="icon"/>
+</span>
+```
+
+vs.
+
+```html
+<span class="icon">
+  <ng-content select=".icon"/>
+</span>
+```
+
+| `select` | Needs in parent | Result |
+|---|---|---|
+| `select="icon"` | `<icon>…</icon>` or `ngProjectAs="icon"` | Projects correctly |
+| `select=".icon"` | `<span class="icon">…</span>` | Projects correctly |
+| `select="icon"` | `<span class="icon">…</span>` | **Fails silently** — no match |
+
+## Summary
+- `select` uses **standard CSS selectors**
+- `"icon"` = element selector (looks for `<icon>`)
+- `".icon"` = class selector (looks for `class="icon"`)
+- `"#id"` = id selector
+- `"tagA, tagB"` = multiple selectors (comma-separated)
+- Use `ngProjectAs="selector"` to make a real HTML element pretend to be a different selector
+- No match = content is silently **dropped** (not rendered)
+
+---
+
+# ViewEncapsulation
+
+## What it is
+Angular scopes each component's CSS so styles don't leak out and affect other components. It does this by adding unique attributes to elements and rewriting your CSS selectors.
+
+## The Three Modes
+
+| Mode | What it does |
+|---|---|
+| `Emulated` (default) | Angular adds unique attributes (e.g., `_ngcontent-ng-c123`) to this component's elements and rewrites CSS to target only those elements. Styles are isolated. |
+| `None` | CSS is dumped into the **global** stylesheet with **no scoping**. Styles affect everything in the app. |
+| `ShadowDom` | Uses native browser Shadow DOM. Rarely used. |
+
+## Default (Emulated) — how it works
+
+```html
+<!-- Your template -->
+<p class="control">...</p>
+
+<!-- Rendered DOM -->
+<p class="control" _ngcontent-ng-c123>...</p>
+```
+
+Your CSS `.control { ... }` becomes `.control[_ngcontent-ng-c123] { ... }` — only this component's elements get the attribute, so styles stay isolated.
+
+## Why use `None`?
+
+Needed when you project content via `ng-content` and want to style that projected content.
+
+```html
+<!-- control.component.html -->
+<p class="control">
+    <label>{{ label() }}</label>
+    <ng-content select="input, textarea"></ng-content>  <!-- from parent -->
+</p>
+```
+
+With **Emulated** encapsulation:
+- The `<p>` and `<label>` get the scoped attribute
+- The projected `<input>` / `<textarea>` do **NOT** — they belong to the parent component
+- CSS like `.control input` becomes `.control input[_ngcontent-ng-c...]` which **won't match**
+- **Result:** styles don't apply to projected content
+
+With **`ViewEncapsulation.None`**:
+- CSS is added globally: `.control input { ... }`
+- Matches **any** input inside `.control`, even projected ones
+- **Result:** styles apply correctly
+
+## Trade-off
+
+| `None` | `Emulated` (default) |
+|---|---|
+| Styles leak globally — can clash with other components | Styles are isolated — safe default |
+| Required for styling projected (`ng-content`) content | Projected content won't receive scoped styles |
+| Use unique class names (e.g., `.app-control`) to avoid collisions | No collision risk |
+
+## When to use each
+
+- **`Emulated`** — default, use for most components
+- **`None`** — use when your component projects content via `ng-content` and you need to style that projected content (e.g., form controls wrapping `<input>`, buttons wrapping text)
+- **`ShadowDom`** — rarely needed, for true native encapsulation
+
+## Code example
+
+```ts
+import { Component, input, ViewEncapsulation } from '@angular/core';
+
+@Component({
+  selector: 'app-control',
+  standalone: true,
+  imports: [],
+  templateUrl: './control.component.html',
+  styleUrl: './control.component.css',
+  encapsulation: ViewEncapsulation.None  // needed to style projected inputs
+})
+export class ControlComponent {
+  label = input.required<string>();
+}
+```
+
+```html
+<!-- control.component.html -->
+<p class="control">
+    <label>{{ label() }}</label>
+    <ng-content select="input, textarea"></ng-content>
+</p>
+```
+
+```css
+/* control.component.css — now applies globally */
+.control label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.control input,
+.control textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+}
+```
