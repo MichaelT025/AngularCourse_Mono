@@ -449,3 +449,35 @@ export class ControlComponent {
   border: 1px solid #ccc;
 }
 ```
+
+---
+
+# `afterRender` vs `afterNextRender`
+
+Modern Angular APIs that run code after the DOM is in sync, replacing `ngAfterViewInit` / `ngAfterViewChecked`.
+
+| API | When it runs | Use for |
+|---|---|---|
+| `afterNextRender(() => ...)` | **Once**, after the next render completes | One-time setup (focus input, init chart) |
+| `afterRender(() => ...)` | **After every render** | Ongoing DOM sync (measure size, update canvas) |
+
+Both execute outside Angular's reactive context, so they won't trigger extra change detection cycles.
+
+```ts
+import { Component, afterNextRender, afterRender } from '@angular/core';
+
+@Component({...})
+export class ChartComponent {
+  constructor() {
+    afterNextRender(() => {
+      // runs once after first paint
+      initChart();
+    });
+
+    afterRender(() => {
+      // runs after every update that changes the view
+      resizeChart();
+    });
+  }
+}
+```
