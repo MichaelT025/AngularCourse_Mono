@@ -481,3 +481,70 @@ export class ChartComponent {
   }
 }
 ```
+
+---
+
+# Angular Directives
+
+## What they are
+Directives are classes that attach extra behavior to elements in your templates. Angular has three kinds:
+
+| Type | What it does | Examples |
+|---|---|---|
+| **Components** | Directives with their own template | `@Component` |
+| **Structural** | Change the DOM layout (add/remove elements) | `*ngIf`, `*ngFor` |
+| **Attribute** | Change appearance or behavior of an element | `ngClass`, `ngStyle`, custom directives |
+
+## Structural directives
+Prefixed with `*` — they shape the DOM structure:
+
+```html
+<div *ngIf="isVisible">Shown conditionally</div>
+<li *ngFor="let item of items">{{ item }}</li>
+```
+
+## Attribute directives
+Look like regular HTML attributes. Used for styling and behavior:
+
+```html
+<p [ngClass]="{ active: isActive }">Styled paragraph</p>
+<div [ngStyle]="{ color: 'red' }">Red text</div>
+```
+
+## Building a custom attribute directive
+Use `@Directive` with a `selector` and attach event listeners via `host`:
+
+```ts
+import { Directive } from '@angular/core';
+
+@Directive({
+  selector: 'a[appSafelink]',     // targets <a> tags with appSafelink
+  standalone: true,
+  host: {
+    '(click)': 'onConfirmLeavePage($event)',
+    'target': '_blank',
+    'rel': 'noopener noreferrer'
+  }
+})
+export class SafeLinkDirective {
+  onConfirmLeavePage(event: MouseEvent) {
+    const wantsToLeave = window.confirm('Do you want to leave the app?');
+    if (!wantsToLeave) {
+      event.preventDefault();
+    }
+  }
+}
+```
+
+Apply it in a template like a normal attribute:
+
+```html
+<a href="https://angular.dev" appSafelink>Angular Docs</a>
+```
+
+## Summary
+- **Components** = directives with templates
+- **Structural** = `*ngIf`, `*ngFor` — change DOM layout
+- **Attribute** = `ngClass`, custom behaviors — change look/feel
+- **Custom directive recipe:** `@Directive({ selector: '...', host: { '(event)': 'handler()' } })`
+- Apply custom directives as HTML attributes on matching elements
