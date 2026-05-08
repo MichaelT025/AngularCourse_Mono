@@ -55,6 +55,55 @@ Parent catches it with `$event`:
 
 ---
 
+# Template Literal `${}` vs Angular Template Syntax
+
+These look similar but live in completely different contexts.
+
+## `${}` inside backticks — TypeScript string interpolation
+
+Only works inside `` `...` `` (template literal strings). Embeds variables or expressions into a string:
+
+```ts
+const name = 'Angular';
+const sum = `1 + 2 = ${1 + 2}`;
+const msg = `Hello ${name}`;     // "Hello Angular"
+```
+
+## `$event` — Angular template binding variable
+
+In Angular HTML templates, `$event` is a **special variable** holding the raw DOM event object:
+
+```html
+<button (click)="logCoords($event)">Click</button>
+```
+
+```ts
+logCoords(event: MouseEvent) {
+  console.log(`Clicked at ${event.clientX}`);  // template literal here
+}
+```
+
+- `$event` is Angular-specific — only available inside `()` event bindings
+- It has **nothing** to do with `${}` in backticks
+
+## `{{ }}` — Angular DOM interpolation
+
+In templates, `{{ }}` renders a value into the HTML:
+
+```html
+<p>{{ userName }}</p>
+```
+
+## Summary
+
+| Syntax | Where | What it does |
+|---|---|---|
+| `` `${expr}` `` | TypeScript code (inside `` `...` ``) | Embed expression into a string |
+| `$event` | Angular template event binding `(click)="fn($event)"` | Passes the DOM event object |
+| `{{ expr }}` | Angular template HTML | Renders value into the DOM |
+
+---
+
 # `.backdrop` — Modal Overlay Pattern
 
 ## What it is
@@ -248,6 +297,38 @@ export class NewTask {
 | Every `new` = a separate copy | `providedIn: 'root'` = **one** shared instance |
 | If the service needs `HttpClient`, you must build the whole chain yourself | Angular resolves nested dependencies automatically |
 | Hard to swap for testing | Easy to swap implementations globally |
+
+## `providedIn: 'root'` vs `providers` in `main.ts`
+
+Prefer `@Injectable({ providedIn: 'root' })` over adding services to the `providers` array in `main.ts`.
+
+| `providedIn: 'root'` | `providers` in `main.ts` |
+|---|---|
+| **Tree-shakeable** — unused services are removed from the build | Always bundled, even if never injected |
+| Service registration lives **with the service** code | Registration is scattered in `main.ts` |
+| One clear app-wide singleton | Same behavior, but less discoverable |
+
+Only use `providers` in `main.ts` for app-level config tokens or runtime values (e.g., `APP_INITIALIZER`). For standard services, always use `providedIn`.
+
+## Multiple instances per component
+
+By default `providedIn: 'root'` gives **one** app-wide instance. If you need **separate instances** per component instance, add the service to the component's `providers` array:
+
+```ts
+@Component({
+  providers: [TasksService]   // new instance for this component + its children
+})
+export class UserComponent {
+  private tasksService = inject(TasksService); // gets the local instance
+}
+```
+
+| Where provided | Instances |
+|---|---|
+| `providedIn: 'root'` | One shared instance everywhere |
+| Component `providers` | One new instance per component instance |
+
+Angular walks up the injector tree and uses the **nearest** provider.
 
 ## Summary
 - **Register:** `@Injectable({ providedIn: 'root' })`
