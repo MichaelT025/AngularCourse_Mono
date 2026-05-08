@@ -10,8 +10,8 @@
     <p>{{ taskStatus() }}</p>
   </header>
   <p>{{ task().description }}</p>
-  <form (ngSubmit)="onChangeTaskStatus(task().id, status.value)">
-    <select #status>
+  <!-- <form (ngSubmit)="onChangeTaskStatus(task().id, status.value)"> -->
+    <select #status (change)="onChangeTaskStatus(task().id, status.value)">
       <option value="open" [selected]="task().status === 'OPEN'">Open</option>
       <option value="in-progress" [selected]="task().status === 'IN_PROGRESS'">
         In-Progress
@@ -20,8 +20,8 @@
         Completed
       </option>
     </select>
-    <p>
+    <!-- <p>
       <button>Change Status</button>
-    </p>
-  </form>
+    </p> -->
+  <!-- </form> -->
 </article>
